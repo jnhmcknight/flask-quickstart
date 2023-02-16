@@ -14,6 +14,7 @@ from flask_cors.core import probably_regex, try_match_any
 from flask_csp import CSP
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+from .converters import DateConverter
 from .lib.json import ExtendedEncoder
 from .utils import forced_relative_redirect
 from .utils.sentry import setup_sentry
@@ -48,6 +49,8 @@ def create_app(name, *, log_level=logging.WARN, flask_kwargs=None, sentry_kwargs
     app = Flask(name, **flask_kwargs)
 
     FlaskDynaconf(app)
+
+    app.url_map.converters['date'] = DateConverter
 
     app.logger.setLevel(log_level)
     app.logger.propagate = True
