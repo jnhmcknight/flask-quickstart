@@ -1,31 +1,9 @@
-# -*- coding: utf-8 -*-
-
-import inspect
-import json
-import logging
 
 from functools import wraps
-from hashlib import sha1
 
-from ..lib.json import ExtendedEncoder
+from flask import current_app
 
-
-logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.DEBUG)
-
-
-def _serialize_args(*args, **kwargs):
-    call_args = {"args": args, "kwargs": kwargs}
-    return json.dumps(call_args, cls=ExtendedEncoder, sort_keys=True, default=str)
-
-
-def _make_key(*args, **kwargs):
-    return sha1(_serialize_args(*args, **kwargs).encode("utf-8")).hexdigest()
-
-
-def _is_method(func):
-    spec = inspect.getargspec(func)
-    return spec.args and spec.args[0] in ["self", "cls"]
+from .cache import Cache, TTLFileCache
 
 
 def memoize(force_refresh_callable=None):
@@ -38,36 +16,120 @@ def memoize(force_refresh_callable=None):
     """
 
     def decorator(obj):
-        cache = obj.__memo_cache__ = {}
-
         @wraps(obj)
         def memoizer(*args, **kwargs):
+            if not obj.cache:
+                obj.cache = Cache()
+
             force_refresh = False
             if force_refresh_callable is not None:
                 if callable(force_refresh_callable):
-                    logger.debug(
+                    current_app.logger.debug(
                         "Using return value of force_refresh_callable to determine refresh forcing"
                     )
                     force_refresh = force_refresh_callable()
                 else:
-                    logger.debug(
+                    current_app.logger.debug(
                         "Using value of force_refresh_callable to determine refresh forcing"
                     )
                     force_refresh = force_refresh_callable
 
-            # Have to mangle the args when we're decorating a class method so that the `self`
-            # arg doesn't mess with the cache key
-            argscopy = args[1:] if _is_method(obj) else args
-            key = _make_key(*argscopy, **kwargs)
+            index = obj.cache.make_key(obj, *argscopy, **kwargs)
+            data = obj.cache.load(index)
 
-            if key not in cache or force_refresh:
-                logger.debug("Calling underlying memoized function")
-                cache[key] = obj(*args, **kwargs)
+            if not data or force_refresh:
+                current_app.logger.debug("Calling underlying memoized function")
+                data = obj(*args, **kwargs)
+                obj.cache.save(index, data)
+
             else:
-                logger.debug("Serving response from the cache")
+                current_app.logger.debug("Serving response from the cache")
 
-            return cache[key]
+            return data
 
         return memoizer
+
+    return decorator
+
+
+def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
+    """
+    Decorator to cache return values on the file system
+    """
+
+    def decorator(obj):
+        @wraps(obj)
+        def wrapper(*args, **kwargs):
+            if not current_app.config.get("CACHE_STORAGE_FOLDER"):
+                current_app.logger.debug(
+                    "Calling underlying memoized function, due to missing CACHE_STORAGE_FOLDER config"
+                )
+                return obj(*args, **kwargs)
+
+            if not obj.cache:
+                obj.cache = TTLFileCache(
+                    current_app.config.CACHE_STORAGE_FOLDER,
+                    prefix=obj.__name__,
+                    default_ttl=default_ttl or current_app.config.get("CACHE_TTL"),
+                )
+
+            index = obj.cache.make_key(obj, *argscopy, **kwargs)
+            current_app.logger.debug("Cache key is: %s" % index)
+
+            data, expires_at, force_refresh = obj.cache.load(index)
+
+            if force_refresh_callable is not None:
+                if callable(force_refresh_callable):
+                    current_app.logger.debug(
+                        "Using return value of force_refresh_callable to determine refresh forcing"
+                    )
+                    force_refresh = force_refresh_callable()
+                else:
+                    current_app.logger.debug(
+                        "Using value of force_refresh_callable to determine refresh forcing"
+                    )
+                    force_refresh = force_refresh_callable
+
+            if not data:
+                current_app.logger.debug("Refresh forced, cache entry is empty")
+                force_refresh = True
+
+            if force_refresh:
+                current_app.logger.debug("Calling underlying memoized function")
+                newdata = None
+                try:
+                    newdata = obj(*args, **kwargs)
+
+                except Exception as exc:
+                    capture_exception(exc)
+                    current_app.logger.exception(exc)
+                    if data:
+                        current_app.logger.warn(
+                            "Serving response from the cache, memoized function failed"
+                        )
+                        return data
+
+                    raise exc
+
+                if newdata:
+                    if obj.cache.save(index, newdata):
+                        current_app.logger.debug(
+                            "Saved to cache, will expire at: %s" % expires_at
+                        )
+
+                else:
+                    current_app.logger.debug(
+                        "Upstream response was empty, ensuring old cached entry is removed"
+                    )
+                    obj.cache.delete(index)
+
+            else:
+                current_app.logger.debug(
+                    "Serving response from the cache, expires at: %s" % expires_at
+                )
+
+            return data
+
+        return wrapper
 
     return decorator
