@@ -5,13 +5,18 @@ Sentry utilities
 """
 
 import json
+import logging
 import os
 import urllib
 
-import sentry_sdk
+try:
+    import sentry_sdk
 
-from sentry_sdk.integrations.boto3 import Boto3Integration
-from sentry_sdk.integrations.flask import FlaskIntegration
+    from sentry_sdk.integrations.boto3 import Boto3Integration
+    from sentry_sdk.integrations.flask import FlaskIntegration
+    SENTRY_IMPORT_ERROR = None
+except ImportError as exc:
+    SENTRY_IMPORT_ERROR = exc
 
 
 # Keys to values we wish to redact before sending to Sentry.
@@ -68,6 +73,11 @@ def strip_sensitive_data(event, hint):
 
 
 def setup_sentry(config=None, *, dsn=None, **kwargs):
+
+    if SENTRY_IMPORT_ERROR is not None:
+        logging.warning('Sentry cannot be instantiated, it failed to import in this virtual environment:')
+        logging.exception(SENTRY_IMPORT_ERROR)
+        return
 
     if config.get('ENV', '').lower() in ("development", "testing"):
         print("[WARNING] Not setting up Sentry due to environment")

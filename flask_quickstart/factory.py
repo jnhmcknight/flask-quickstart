@@ -9,9 +9,20 @@ import string
 
 from dynaconf import FlaskDynaconf
 from flask import Flask, abort, request, redirect, Response, jsonify
-from flask_cors import CORS
-from flask_cors.core import probably_regex, try_match_any
-from flask_csp import CSP
+
+try:
+    from flask_cors import CORS
+    from flask_cors.core import probably_regex, try_match_any
+    FLASK_CORS_IMPORT_ERROR = None
+except ImportError as exc:
+    FLASK_CORS_IMPORT_ERROR = exc
+
+try:
+    from flask_csp import CSP
+    FLASK_CSP_IMPORT_ERROR = None
+except ImportError as exc:
+    FLASK_CSP_IMPORT_ERROR = exc
+
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .converters import DateConverter
@@ -66,15 +77,23 @@ def create_app(name, *, log_level=logging.WARN, flask_kwargs=None, sentry_kwargs
 
     setup_sentry(app.config, debug=app.debug, **sentry_kwargs)
 
-
     logging.getLogger('boto3').setLevel(app.config.get('BOTO3_LOG_LEVEL', logging.CRITICAL))
     logging.getLogger('botocore').setLevel(app.config.get('BOTOCORE_LOG_LEVEL', logging.CRITICAL))
     logging.getLogger('sentry').setLevel(app.config.get('SENTRY_LOG_LEVEL', logging.CRITICAL))
     logging.getLogger('sqlalchemy.engine').setLevel(app.config.get('SQLALCHEMY_LOG_LEVEL', logging.CRITICAL))
 
-    allowed_origins = origins_list_to_regex(app.config.get('ALLOWED_ORIGINS', ['.*']))
-    CORS(app, origins=allowed_origins, supports_credentials=True)
-    CSP(app)
+    if FLASK_CORS_IMPORT_ERROR is None:
+        allowed_origins = origins_list_to_regex(app.config.get('ALLOWED_ORIGINS', ['.*']))
+        CORS(app, origins=allowed_origins, supports_credentials=True)
+    else:
+        app.logger.warning('Flask-CORS failed to import:')
+        app.logger.exception(FLASK_CORS_IMPORT_ERROR)
+
+    if FLASK_CSP_IMPORT_ERROR is None:
+        CSP(app)
+    else:
+        app.logger.warning('Flask-CSP failed to import:')
+        app.logger.exception(FLASK_CSP_IMPORT_ERROR)
 
     app.json_encoder = ExtendedEncoder
 

@@ -26,4 +26,4 @@ class ExtendedEncoder(json.JSONEncoder):
         if isinstance(obj, Exception):
             return unicode(obj)
 
-        return super().default(self, obj)
+        return super().default(obj)

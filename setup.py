@@ -42,12 +42,19 @@ if __name__ == "__main__":
             'certifi',
             'dynaconf',
             'flask',
-            'flask-cors',
-            'flask-csp',
             'pytz',
-            'sentry_sdk[flask]',
             'werkzeug',
         ],
+        extras_requires={
+            'sentry': ['sentry-sdk[flask]'],
+            'csp': ['flask-csp'],
+            'cors': ['flask-cors'],
+            'full': [
+                'flask-csp',
+                'flask-cors',
+                'sentry-sdk[flask]',
+            ],
+        },
         dependency_links=[
             'https://github.com/fictivekin/flask-csp.git#egg=flask-csp',
         ],
