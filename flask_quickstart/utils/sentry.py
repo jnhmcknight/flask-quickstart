@@ -128,4 +128,8 @@ def setup_sentry(config=None, *, dsn=None, **kwargs):
     if add_flask_int:
         kwargs['integrations'].append(FlaskIntegration())
 
+    if 'traces_sample_rate' not in kwargs:
+        # 0 = no sampling, 1 = 100% sampling
+        kwargs['traces_sample_rate'] = 0.1  # default is 10% of requests
+
     sentry_sdk.init(dsn=dsn, **kwargs)
