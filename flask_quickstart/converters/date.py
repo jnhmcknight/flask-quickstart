@@ -13,6 +13,6 @@ class DateConverter(BaseConverter):
             return datetime.strptime(value, '%Y-%m-%d').date()
         except ValueError:
             raise ValidationError()
- 
+
     def to_url(self, value):
         return value.strftime('%Y-%m-%d')
