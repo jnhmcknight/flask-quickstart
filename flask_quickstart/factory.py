@@ -6,6 +6,7 @@ import logging
 import random
 import re
 import string
+import time
 
 from dynaconf import FlaskDynaconf
 from flask import Flask, abort, request, redirect, Response, jsonify
@@ -52,14 +53,56 @@ def origins_list_to_regex(origins):
     return regex_list
 
 
-def create_app(name, *, log_level=logging.WARN, flask_kwargs=None, sentry_kwargs=None):
+def create_app(
+    name, *,
+    log_level=logging.WARN,
+    flask_kwargs=None,
+    dynaconf_kwargs=None,
+    sentry_kwargs=None,
+):
+
+    tries = 0
+    app = None
+    while app is None:
+        tries += 1
+        try:
+            app = _create_app(
+                name,
+                log_level=log_level,
+                flask_kwargs=flask_kwargs,
+                dynaconf_kwargs=dynaconf_kwargs,
+                sentry_kwargs=sentry_kwargs,
+            )
+        except Exception as exc:
+            logging.exception(exc)
+
+            if tries >= 5:
+                logging.critical('Number of allowed app instantiation retries has been exceeded.')
+                raise exc
+
+            time.sleep(random.randint(1,3))
+            app = None
+
+    return app
+
+
+def _create_app(
+    name, *,
+    log_level=logging.WARN,
+    flask_kwargs=None,
+    dynaconf_kwargs=None,
+    sentry_kwargs=None,
+):
 
     if flask_kwargs is None:
         flask_kwargs = {}
+    if dynaconf_kwargs is None:
+        dynaconf_kwargs = {}
+    if sentry_kwargs is None:
+        sentry_kwargs = {}
 
     app = Flask(name, **flask_kwargs)
-
-    FlaskDynaconf(app)
+    FlaskDynaconf(app, **dynaconf_kwargs)
 
     app.url_map.converters['date'] = DateConverter
 
@@ -71,9 +114,6 @@ def create_app(name, *, log_level=logging.WARN, flask_kwargs=None, sentry_kwargs
         app.config.ENV = os.environ.get(
             'FLASK_ENV', os.environ.get('ENV_FOR_DYNACONF', 'development')
         )
-
-    if sentry_kwargs is None:
-        sentry_kwargs = {}
 
     setup_sentry(app.config, debug=app.debug, **sentry_kwargs)
 
