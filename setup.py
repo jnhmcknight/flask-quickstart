@@ -9,7 +9,7 @@ def readme():
 
 name = 'flask-quickstart'
 description = 'Flask Quickstart'
-version = '0.6.0'
+version = '0.7.0'
 author = 'Fictive Kin LLC'
 email = 'hello@fictivekin.com'
 classifiers = [
