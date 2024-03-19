@@ -96,8 +96,20 @@ def _create_app(
 
     if flask_kwargs is None:
         flask_kwargs = {}
+
     if dynaconf_kwargs is None:
-        dynaconf_kwargs = {}
+        dynaconf_kwargs = {
+            'extensions': True,
+            'LOADERS_FOR_DYNACONF': [
+                'dynaconf.loaders.env_loader',
+            ],
+        }
+
+    elif 'LOADERS_FOR_DYNACONF' in dynaconf_kwargs:
+        # We always want to load env vars, so make sure this is here
+        if 'dynaconf.loaders.env_loader' not in dynaconf_kwargs['LOADERS_FOR_DYNACONF']:
+            dynaconf_kwargs['LOADERS_FOR_DYNACONF'].append('dynaconf.loaders.env_loader')
+
     if sentry_kwargs is None:
         sentry_kwargs = {}
 
