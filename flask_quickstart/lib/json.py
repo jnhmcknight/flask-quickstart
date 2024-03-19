@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta
+import dataclasses
 import enum
 import json
 import pytz
@@ -11,6 +12,8 @@ class ExtendedEncoder(json.JSONEncoder):
     """Encoder that supports various additional types that we care about."""
 
     def default(self, obj):
+        if dataclasses.is_dataclass(obj):
+            return dataclasses.asdict(obj)
         if isinstance(obj, datetime):
             return obj.replace(tzinfo=pytz.UTC).isoformat('T')
         if isinstance(obj, timedelta):
