@@ -107,9 +107,6 @@ def setup_sentry(config=None, *, dsn=None, **kwargs):
     if 'environment' not in kwargs:
         kwargs['environment'] = config.get('ENV')
 
-    if 'request_bodies' not in kwargs:
-        kwargs['request_bodies'] = "always"
-
     if 'integrations' not in kwargs or not kwargs['integrations']:
         kwargs['integrations'] = []
     elif not isinstance(kwargs['integrations'], list):
