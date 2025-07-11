@@ -7,17 +7,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = 'flask-quickstart'
 description = 'A quick start for commonly used features of a Flask app'
-version = '0.7.1'
+version = '0.8.1'
 authors = [
     { name='Fictive Kin LLC', email='hello@fictivekin.com' },
 ]
 classifiers = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 4 - Beta',
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     'Topic :: Software Development',
 ]
 readme = "README.md"
@@ -37,10 +38,10 @@ dependencies = [
 [project.optional-dependencies]
 sentry = ['sentry-sdk[flask]']
 csp = ['flask-csp']
-cors = ['flask-cors']
+cors = ['flask-cors>=6.0.0']
 full = [
     'flask-csp',
-    'flask-cors',
+    'flask-cors>=6.0.0',
     'sentry-sdk[flask]',
 ]
 

@@ -13,7 +13,7 @@ from flask import Flask, abort, request, redirect, Response, jsonify
 
 try:
     from flask_cors import CORS
-    from flask_cors.core import probably_regex, try_match_any
+    from flask_cors.core import probably_regex, try_match_any_pattern
     FLASK_CORS_IMPORT_ERROR = None
 except ImportError as exc:
     FLASK_CORS_IMPORT_ERROR = exc
@@ -168,8 +168,8 @@ def _create_app(
                     return False
 
                 if (
-                        not try_match_any(origin, app.allowed_origins) and
-                        not try_match_any(f'{origin}/', app.allowed_origins)
+                        not try_match_any_pattern(origin, app.allowed_origins, caseSensitive=False) and
+                        not try_match_any_pattern(f'{origin}/', app.allowed_origins, caseSensitive=False)
                 ):
                     app.logger.debug('Origin header not in allowed list: {}'.format(origin))
                     return False
