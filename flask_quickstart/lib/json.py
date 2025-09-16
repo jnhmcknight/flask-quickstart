@@ -5,7 +5,6 @@ import dataclasses
 import enum
 import json
 import pytz
-from pip._vendor.distlib.version import Version
 import uuid
 
 class ExtendedEncoder(json.JSONEncoder):
@@ -17,8 +16,6 @@ class ExtendedEncoder(json.JSONEncoder):
         if isinstance(obj, datetime):
             return obj.replace(tzinfo=pytz.UTC).isoformat('T')
         if isinstance(obj, timedelta):
-            return str(obj)
-        if isinstance(obj, Version):
             return str(obj)
         if isinstance(obj, uuid.UUID):
             return unicode(obj)
