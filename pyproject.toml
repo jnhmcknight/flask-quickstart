@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = 'flask-quickstart'
 description = 'A quick start for commonly used features of a Flask app'
-version = '1.1.1'
+version = '1.1.2'
 authors = [
     { name='Fictive Kin LLC', email='hello@fictivekin.com' },
 ]
