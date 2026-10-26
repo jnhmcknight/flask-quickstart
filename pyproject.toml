@@ -48,6 +48,9 @@ tests = [
     'pytest',
     'pytest-randomly',
 ]
+lint = [
+    'ruff>=0.17',
+]
 
 [project.urls]
 Homepage = 'https://github.com/jnhmcknight/flask-quickstart'
@@ -57,3 +60,18 @@ include = ['flask_quickstart*']
 
 [tool.pytest.ini_options]
 testpaths = ['tests']
+
+[tool.ruff.lint]
+extend-select = [
+    'B',   # flake8-bugbear
+    'I',   # isort
+    'UP',  # pyupgrade
+    'W',   # pycodestyle warnings
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exported names
+'__init__.py' = ['F401']
+
+[tool.ruff.lint.isort]
+known-first-party = ['flask_quickstart']
