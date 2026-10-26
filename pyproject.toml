@@ -68,6 +68,9 @@ extend-select = [
     'UP',  # pyupgrade
     'W',   # pycodestyle warnings
 ]
+ignore = [
+    'TRY004',  # ValueError is part of the public API for invalid values
+]
 
 [tool.ruff.lint.per-file-ignores]
 # Re-exported names

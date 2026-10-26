@@ -19,6 +19,8 @@ except ImportError as exc:
     SENTRY_IMPORT_ERROR = exc
     Transport = object
 
+logger = logging.getLogger(__name__)
+
 
 class PrintTransport(Transport):
     """Prints envelopes instead of sending them, for use when debugging."""
@@ -64,7 +66,7 @@ def strip_sensitive_data(event, hint):
     # Handle URL query strings that might include a secret
     if "request" in event and event["request"].get("query_string"):
         query_string = urllib.parse.parse_qs(event["request"]["query_string"])
-        for key, _ in query_string.items():
+        for key in query_string:
             if key.lower() in SENSITIVE_KEYS:
                 query_string[key] = "REDACTED"
 
@@ -74,13 +76,13 @@ def strip_sensitive_data(event, hint):
 
     # # Handle Headers that might include a secret (e.g. any Authorization header)
     if "request" in event and event["request"].get("headers"):
-        for header_name, _ in event["request"]["headers"].items():
+        for header_name in event["request"]["headers"]:
             if header_name.lower() in SENSITIVE_HEADERS:
                 event["request"]["headers"][header_name] = "REDACTED"
 
     # # Handle request body data
     if "request" in event and event["request"].get("data"):
-        for key, _ in event["request"]["data"].items():
+        for key in event["request"]["data"]:
             if key.lower() in SENSITIVE_KEYS:
                 event["request"]["data"][key] = "REDACTED"
 
@@ -90,10 +92,10 @@ def strip_sensitive_data(event, hint):
 def setup_sentry(config=None, *, dsn=None, **kwargs):
 
     if SENTRY_IMPORT_ERROR is not None:
-        logging.warning(
-            "Sentry cannot be instantiated, it failed to import in this virtual environment:"
+        logger.warning(
+            "Sentry cannot be instantiated, it failed to import in this virtual environment: %s",
+            SENTRY_IMPORT_ERROR,
         )
-        logging.exception(SENTRY_IMPORT_ERROR)
         return
 
     if config is None:

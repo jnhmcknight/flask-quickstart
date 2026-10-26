@@ -11,8 +11,8 @@ class DateConverter(BaseConverter):
     def to_python(self, value):
         try:
             return datetime.strptime(value, "%Y-%m-%d").date()
-        except ValueError:
-            raise ValidationError()
+        except ValueError as exc:
+            raise ValidationError() from exc
 
     def to_url(self, value):
         return value.strftime("%Y-%m-%d")

@@ -29,6 +29,8 @@ from .lib.json import ExtendedJSONProvider
 from .utils import forced_relative_redirect
 from .utils.sentry import setup_sentry
 
+logger = logging.getLogger(__name__)
+
 # Characters common in regular expressions, used as a proxy for whether an origin is a regex
 REGEX_HINT_CHARS = frozenset("*\\]?$^[]()")
 
@@ -50,7 +52,7 @@ def matches_any_origin(origin, patterns):
 
 
 def origins_list_to_regex(origins):
-    logging.info(f"Original origins list: {origins}")
+    logger.info("Original origins list: %s", origins)
     if not isinstance(
         origins,
         (
@@ -102,14 +104,14 @@ def create_app(
                 dynaconf_kwargs=dynaconf_kwargs,
                 sentry_kwargs=sentry_kwargs,
             )
-        except Exception as exc:
-            logging.exception(exc)
+        except Exception:
+            logger.exception("App instantiation failed (attempt %d)", tries)
 
             if tries >= 5:
-                logging.critical(
+                logger.critical(
                     "Number of allowed app instantiation retries has been exceeded."
                 )
-                raise exc
+                raise
 
             time.sleep(random.randint(1, 3))
             app = None
@@ -137,12 +139,12 @@ def _create_app(
             ],
         }
 
-    elif "LOADERS_FOR_DYNACONF" in dynaconf_kwargs:
-        # We always want to load env vars, so make sure this is here
-        if "dynaconf.loaders.env_loader" not in dynaconf_kwargs["LOADERS_FOR_DYNACONF"]:
-            dynaconf_kwargs["LOADERS_FOR_DYNACONF"].append(
-                "dynaconf.loaders.env_loader"
-            )
+    # We always want to load env vars, so make sure this is here
+    elif (
+        "LOADERS_FOR_DYNACONF" in dynaconf_kwargs
+        and "dynaconf.loaders.env_loader" not in dynaconf_kwargs["LOADERS_FOR_DYNACONF"]
+    ):
+        dynaconf_kwargs["LOADERS_FOR_DYNACONF"].append("dynaconf.loaders.env_loader")
 
     if sentry_kwargs is None:
         sentry_kwargs = {}

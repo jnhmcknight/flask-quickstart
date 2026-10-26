@@ -109,26 +109,26 @@ class TTLFileCache(Cache):
 
     def expire(self, index=None):
         if index is not None:
-            data, expires_at, is_expired = self.load(index)
+            data = self.load(index)[0]
             if data:
                 return self.save(index, data, expire=True)
             else:
                 return self.delete(index)
 
-        for root, dirs, files in os.walk(self._storage_full_path):
+        for _, _, files in os.walk(self._storage_full_path):
             for file in files:
                 try:
                     self.expire(file)
-                except Exception as exc:  # pylint: disable=broad-except
-                    logger.exception(exc)
+                except Exception:  # pylint: disable=broad-except
+                    logger.exception("Failed to expire cache entry %s", file)
 
     def clear(self):
         try:
             shutil.rmtree(self._storage_full_path)
             return True
 
-        except OSError as exc:
-            logger.exception(exc)
+        except OSError:
+            logger.exception("Failed to clear cache folder %s", self._storage_full_path)
             return False
 
     def delete(self, index):
@@ -139,8 +139,8 @@ class TTLFileCache(Cache):
         except FileNotFoundError:
             return True
 
-        except OSError as exc:
-            logger.exception(exc)
+        except OSError:
+            logger.exception("Failed to delete cache entry %s", index)
             return False
 
     def load(self, index, *, encoding=None):
@@ -152,8 +152,8 @@ class TTLFileCache(Cache):
         except FileNotFoundError:
             pass
 
-        except (OSError, ValueError, KeyError) as exc:
-            logger.exception(exc)
+        except (OSError, ValueError, KeyError):
+            logger.exception("Failed to load cache entry %s", index)
 
         return (None, datetime(1970, 1, 1, tzinfo=timezone.utc), True)
 
@@ -169,6 +169,6 @@ class TTLFileCache(Cache):
                 )
             return True
 
-        except (OSError, TypeError) as exc:
-            logger.exception(exc)
+        except (OSError, TypeError):
+            logger.exception("Failed to save cache entry %s", index)
             return False

@@ -74,7 +74,7 @@ def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
                 )
 
             index = obj.cache.make_key(obj, *args, **kwargs)
-            current_app.logger.debug("Cache key is: %s" % index)
+            current_app.logger.debug("Cache key is: %s", index)
 
             data, expires_at, force_refresh = obj.cache.load(index)
 
@@ -102,14 +102,16 @@ def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
 
                 except Exception as exc:
                     capture_exception(exc)
-                    current_app.logger.exception(exc)
+                    current_app.logger.exception(
+                        "Memoized function %s failed", obj.__name__
+                    )
                     if data:
                         current_app.logger.warning(
                             "Serving response from the cache, memoized function failed"
                         )
                         return data
 
-                    raise exc
+                    raise
 
                 if newdata:
                     if obj.cache.save(index, newdata):
@@ -125,7 +127,7 @@ def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
 
             else:
                 current_app.logger.debug(
-                    "Serving response from the cache, expires at: %s" % expires_at
+                    "Serving response from the cache, expires at: %s", expires_at
                 )
 
             return data

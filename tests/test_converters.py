@@ -7,6 +7,7 @@ from datetime import date
 
 import pytest
 from flask import url_for
+from werkzeug.routing import BuildError
 
 from flask_quickstart.converters import setup_enum_converter
 
@@ -48,7 +49,7 @@ def test_converters_build_urls(enum_app):
 
 
 def test_enum_converter_rejects_other_values(enum_app):
-    with enum_app.test_request_context(), pytest.raises(Exception):
+    with enum_app.test_request_context(), pytest.raises(BuildError):
         url_for("color", color="GREEN")
 
 
