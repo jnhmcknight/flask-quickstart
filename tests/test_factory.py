@@ -78,7 +78,7 @@ def test_origins_list_to_regex_compiles_regexes():
     (pattern,) = factory.origins_list_to_regex([r".*\.example\.com"])
 
     assert isinstance(pattern, re.Pattern)
-    assert pattern.pattern == r"https://.*\.example\.com"
+    assert pattern.pattern == r"(?:https://.*\.example\.com)\Z"
     assert pattern.flags & re.IGNORECASE
 
 
@@ -89,12 +89,19 @@ def test_origins_list_to_regex_compiles_regexes():
         ("https://EXAMPLE.com", True),
         ("https://sub.example.org", True),
         ("https://SUB.EXAMPLE.ORG", True),
+        ("https://sub.example.net", True),
         ("http://example.com", False),
         ("https://evil.com", False),
+        ("https://example.com.evil.com", False),
+        ("https://sub.example.org.evil.com", False),
+        ("https://sub.example.org\n", False),
+        ("https://sub.example.net.evil.com", False),
     ],
 )
 def test_matches_any_origin(origin, expected):
-    patterns = factory.origins_list_to_regex(["example.com", r".*\.example\.org"])
+    patterns = factory.origins_list_to_regex(
+        ["example.com", r".*\.example\.org", r".*\.example\.net$"]
+    )
     assert factory.matches_any_origin(origin, patterns) == expected
 
 
@@ -167,6 +174,7 @@ def test_date_converter_routing(app):
         ("https://example.com", True),
         ("https://www.example.org", True),
         ("https://evil.com", False),
+        ("https://www.example.org.evil.com", False),
         ("http://example.com", False),
     ],
 )
@@ -177,6 +185,35 @@ def test_cors(make_app, origin, allowed):
     assert (resp.headers.get("Access-Control-Allow-Origin") == origin) == allowed
     if allowed:
         assert resp.headers["Access-Control-Allow-Credentials"] == "true"
+
+
+def test_cors_allows_no_origins_by_default(app):
+    resp = (
+        add_routes(app)
+        .test_client()
+        .get("/text", headers={"Origin": "https://example.com"})
+    )
+
+    assert "Access-Control-Allow-Origin" not in resp.headers
+
+
+def test_cors_allow_any_https_origin(make_app):
+    app = add_routes(make_app(ALLOWED_ORIGINS=[".*"]))
+    client = app.test_client()
+
+    origin = "https://anything.example"
+    assert (
+        client.get("/text", headers={"Origin": origin}).headers[
+            "Access-Control-Allow-Origin"
+        ]
+        == origin
+    )
+    assert (
+        "Access-Control-Allow-Origin"
+        not in client.get(
+            "/text", headers={"Origin": "http://anything.example"}
+        ).headers
+    )
 
 
 @pytest.mark.parametrize(
@@ -197,6 +234,13 @@ def test_shortcircuit_options(make_app, headers, status_code):
     assert resp.status_code == status_code
     if status_code == 200:
         assert resp.text == ""
+
+
+def test_shortcircuit_options_without_allowed_origins(make_app):
+    app = add_routes(make_app(SHORTCIRCUIT_OPTIONS=True))
+    resp = app.test_client().options("/text", headers={"Origin": "https://example.com"})
+
+    assert resp.status_code == 403
 
 
 def test_options_not_shortcircuited_by_default(make_app):

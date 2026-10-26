@@ -56,7 +56,7 @@ def origins_list_to_regex(origins):
     Normalizes ``ALLOWED_ORIGINS`` into the list of origins passed to Flask-CORS.
 
     Origins without a scheme are given ``https://``, and any that look like a regular expression
-    are compiled, case-insensitively.
+    are compiled, case-insensitively, to match the whole origin.
 
     :param origins: An origin, a list of them, or a JSON-encoded list of them
     :returns: A list of origin strings and compiled patterns
@@ -86,7 +86,9 @@ def origins_list_to_regex(origins):
             string = f"https://{string}"
 
         if probably_regex(string):
-            regex_list.append(re.compile(string, re.IGNORECASE))
+            # Anchor the end too, since patterns are only matched from the start of the origin.
+            # Otherwise `.*\.example\.com` would also match `https://a.example.com.attacker.net`
+            regex_list.append(re.compile(rf"(?:{string})\Z", re.IGNORECASE))
         else:
             regex_list.append(string)
 
@@ -203,7 +205,7 @@ def _create_app(
         app.config.get("SQLALCHEMY_LOG_LEVEL", logging.CRITICAL)
     )
 
-    allowed_origins = origins_list_to_regex(app.config.get("ALLOWED_ORIGINS", [".*"]))
+    allowed_origins = origins_list_to_regex(app.config.get("ALLOWED_ORIGINS", []))
 
     if FLASK_CORS_IMPORT_ERROR is None:
         CORS(app, origins=allowed_origins, supports_credentials=True)
@@ -230,18 +232,17 @@ def _create_app(
     if app.config.get("SHORTCIRCUIT_OPTIONS", False):
 
         def is_allowed_origin():
-            if allowed_origins:
-                origin = request.headers.get("Origin")
+            origin = request.headers.get("Origin")
 
-                if not origin:
-                    app.logger.debug("Origin header not provided")
-                    return False
+            if not origin:
+                app.logger.debug("Origin header not provided")
+                return False
 
-                if not matches_any_origin(
-                    origin, allowed_origins
-                ) and not matches_any_origin(f"{origin}/", allowed_origins):
-                    app.logger.debug(f"Origin header not in allowed list: {origin}")
-                    return False
+            if not matches_any_origin(
+                origin, allowed_origins
+            ) and not matches_any_origin(f"{origin}/", allowed_origins):
+                app.logger.debug(f"Origin header not in allowed list: {origin}")
+                return False
 
             return True
 

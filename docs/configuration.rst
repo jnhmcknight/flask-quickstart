@@ -56,24 +56,22 @@ CORS is handled by `Flask-CORS <https://flask-cors.readthedocs.io/>`__ when it i
 
 ``ALLOWED_ORIGINS`` (:py:class:`list` of :py:class:`str`)
    The origins allowed to make cross-origin requests. Each is either an exact origin or a regular
-   expression, which is assumed for anything containing one of ``*\]?$^[]()``. Origins without a
-   scheme are given ``https://``, and matching ignores case.
+   expression, which is assumed for anything containing one of ``*\]?$^[]()``. Regular
+   expressions must match the whole origin. Origins without a scheme are given ``https://``, and
+   matching ignores case.
 
-   Defaults to ``['.*']``, which allows every HTTPS origin.
+   Defaults to ``[]``, which allows no cross-origin requests.
 
    .. code:: toml
 
       ALLOWED_ORIGINS = [
           'example.com',                     # only https://example.com
           'http://localhost:3000',
-          '.*\.example\.com$',               # any subdomain of example.com
+          '.*\.example\.com',                # any subdomain of example.com
       ]
 
-   .. warning::
-
-      Regular expressions are matched against the start of the origin only. Without a trailing
-      ``$``, ``.*\.example\.com`` also allows ``https://www.example.com.attacker.net``. Since
-      credentials are allowed, end every pattern with ``$``.
+   ``['.*']`` allows every HTTPS origin. Since credentials are allowed, that lets any website
+   make requests as your logged-in users, so list your origins instead where you can.
 
 Other `Flask-CORS options <https://flask-cors.readthedocs.io/en/latest/configuration.html>`__ can
 be set with its ``CORS_*`` settings, except ``CORS_ORIGINS`` and ``CORS_SUPPORTS_CREDENTIALS``,
