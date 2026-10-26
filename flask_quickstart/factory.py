@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import json
-import os
 import logging
+import os
 import random
 import re
 import time
@@ -30,7 +28,6 @@ from .converters import DateConverter
 from .lib.json import ExtendedJSONProvider
 from .utils import forced_relative_redirect
 from .utils.sentry import setup_sentry
-
 
 # Characters common in regular expressions, used as a proxy for whether an origin is a regex
 REGEX_HINT_CHARS = frozenset("*\\]?$^[]()")
@@ -87,7 +84,7 @@ def origins_list_to_regex(origins):
 def create_app(
     name,
     *,
-    log_level=logging.WARN,
+    log_level=logging.WARNING,
     flask_kwargs=None,
     dynaconf_kwargs=None,
     sentry_kwargs=None,
@@ -123,7 +120,7 @@ def create_app(
 def _create_app(
     name,
     *,
-    log_level=logging.WARN,
+    log_level=logging.WARNING,
     flask_kwargs=None,
     dynaconf_kwargs=None,
     sentry_kwargs=None,
@@ -216,9 +213,7 @@ def _create_app(
                 if not matches_any_origin(
                     origin, allowed_origins
                 ) and not matches_any_origin(f"{origin}/", allowed_origins):
-                    app.logger.debug(
-                        "Origin header not in allowed list: {}".format(origin)
-                    )
+                    app.logger.debug(f"Origin header not in allowed list: {origin}")
                     return False
 
             return True

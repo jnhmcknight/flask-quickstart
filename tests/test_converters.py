@@ -2,11 +2,11 @@
 tests.test_converters
 """
 
-from datetime import date
 import enum
+from datetime import date
 
-from flask import url_for
 import pytest
+from flask import url_for
 
 from flask_quickstart.converters import setup_enum_converter
 

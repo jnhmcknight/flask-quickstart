@@ -3,14 +3,14 @@ tests.test_json
 """
 
 import dataclasses
-from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
 import enum
 import json
 import uuid
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 
-from flask import jsonify
 import pytest
+from flask import jsonify
 
 from flask_quickstart.lib.json import ExtendedEncoder, extended_default
 

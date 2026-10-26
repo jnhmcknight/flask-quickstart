@@ -2,12 +2,12 @@
 tests.test_factory
 """
 
-from datetime import date
 import logging
 import re
+from datetime import date
 
-from flask import Response
 import pytest
+from flask import Response
 
 from flask_quickstart import factory
 from flask_quickstart.lib.json import ExtendedJSONProvider
@@ -103,7 +103,7 @@ def test_create_app_defaults(app):
     assert isinstance(app.json, ExtendedJSONProvider)
     assert app.config.ENV == "testing"
     assert "date" in app.url_map.converters
-    assert app.logger.level == logging.WARN
+    assert app.logger.level == logging.WARNING
 
 
 def test_create_app_kwargs(make_app, monkeypatch):

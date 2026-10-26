@@ -3,12 +3,10 @@ import json
 import logging
 import os
 import shutil
-
-from datetime import timedelta, datetime, timezone
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 
 from ..lib.json import ExtendedEncoder
-
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +146,7 @@ class TTLFileCache(Cache):
     def load(self, index, *, encoding=None):
         encoding = encoding if encoding is not None else "utf-8"
         try:
-            with open(self._get_full_path(index), "r", encoding=encoding) as datafile:
+            with open(self._get_full_path(index), encoding=encoding) as datafile:
                 return self._unwrap(json.load(datafile))
 
         except FileNotFoundError:

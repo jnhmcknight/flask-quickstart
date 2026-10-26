@@ -12,7 +12,6 @@ from sentry_sdk.integrations.flask import FlaskIntegration
 
 from flask_quickstart.utils import sentry, zappa
 
-
 DSN = "https://key@o0.ingest.sentry.io/1"
 
 

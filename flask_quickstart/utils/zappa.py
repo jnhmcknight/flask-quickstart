@@ -14,7 +14,7 @@ def zappa_handler(e, event, context):
         scope.set_tag("handler", "raw-zappa")
 
         try:
-            with open("package_info.json", "r", encoding="utf-8") as package_info_file:
+            with open("package_info.json", encoding="utf-8") as package_info_file:
                 package_info = json.load(package_info_file)
 
             for key, value in package_info.items():

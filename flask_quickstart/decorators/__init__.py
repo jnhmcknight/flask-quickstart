@@ -2,8 +2,8 @@ from functools import wraps
 
 from flask import current_app
 
-from .cache import Cache, TTLFileCache
 from ..utils.sentry import capture_exception
+from .cache import Cache, TTLFileCache
 
 
 def memoize(force_refresh_callable=None):

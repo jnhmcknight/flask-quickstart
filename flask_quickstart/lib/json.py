@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
-from datetime import date, datetime, timedelta, timezone
 import dataclasses
 import enum
 import json
 import uuid
+from datetime import date, datetime, timedelta, timezone
 
 from flask.json.provider import DefaultJSONProvider
 

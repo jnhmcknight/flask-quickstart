@@ -10,7 +10,6 @@ import urllib.parse
 
 try:
     import sentry_sdk
-
     from sentry_sdk.integrations.boto3 import Boto3Integration
     from sentry_sdk.integrations.flask import FlaskIntegration
     from sentry_sdk.transport import Transport
