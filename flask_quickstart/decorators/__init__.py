@@ -8,11 +8,16 @@ from .cache import Cache, TTLFileCache
 
 def memoize(force_refresh_callable=None):
     """
-    Simple decorator to cache return value based on args and kwargs in-memory.
+    Decorator that caches a function's return values in memory, keyed on its arguments.
+
+    The cache lives for the life of the process. Falsy return values are not served from the
+    cache, so the function is called again for them. Must be called within an app context.
 
     Taken and modified from Python Decorator Library.
     https://wiki.python.org/moin/PythonDecoratorLibrary#Alternate_memoize_as_dict_subclass
 
+    :param force_refresh_callable: A value, or a callable returning one, that when truthy causes
+        the function to be called and the cache to be refreshed
     """
 
     def decorator(obj):
@@ -54,7 +59,22 @@ def memoize(force_refresh_callable=None):
 
 def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
     """
-    Decorator to cache return values on the file system
+    Decorator that caches a function's return values on the file system for a limited time,
+    using :py:class:`~flask_quickstart.decorators.cache.TTLFileCache`.
+
+    Entries are stored under the ``CACHE_STORAGE_FOLDER`` setting, in a folder named after the
+    function. Without that setting, nothing is cached. Return values must be JSON-serializable by
+    :py:class:`~flask_quickstart.lib.json.ExtendedEncoder`, and are returned from the cache as
+    their JSON-decoded form.
+
+    If refreshing an entry raises an exception, it is reported to Sentry and the previously
+    cached value is returned when there is one. An empty return value removes the cached entry.
+    Must be called within an app context.
+
+    :param force_refresh_callable: A value, or a callable returning one, that when truthy causes
+        the function to be called and the cache to be refreshed
+    :param default_ttl: How many seconds entries are cached for. Defaults to the ``CACHE_TTL``
+        setting, or 900.
     """
 
     def decorator(obj):

@@ -1,5 +1,5 @@
 """
-application.utils.sentry
+flask_quickstart.utils.sentry
 
 Sentry utilities
 """
@@ -90,6 +90,19 @@ def strip_sensitive_data(event, hint):
 
 
 def setup_sentry(config=None, *, dsn=None, **kwargs):
+    """
+    Initializes the Sentry SDK, with the Flask and Boto3 integrations added.
+
+    Nothing is set up when sentry-sdk is not installed, when the ``ENV`` setting is
+    ``development`` or ``testing``, or when no DSN is found. :py:func:`~flask_quickstart.create_app`
+    calls this for you.
+
+    :param config: The app config. Its ``ENV`` setting is used as the Sentry environment.
+    :param dsn: The Sentry DSN. Defaults to the ``SENTRY_DSN`` setting, or the ``SENTRY_DSN`` or
+        ``FLASK_SENTRY_DSN`` environment variables.
+    :param kwargs: Options for ``sentry_sdk.init()``. ``traces_sample_rate`` defaults to
+        ``0.1``. With ``debug=True``, events are printed instead of sent.
+    """
 
     if SENTRY_IMPORT_ERROR is not None:
         logger.warning(

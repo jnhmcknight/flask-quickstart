@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class Cache:
+    """An in-memory cache, used by :py:func:`~flask_quickstart.decorators.memoize`."""
+
     _data = None
 
     @classmethod
@@ -30,6 +32,11 @@ class Cache:
 
     @classmethod
     def make_key(cls, wrapped_callable, *args, **kwargs):
+        """
+        Returns the cache key for a call to ``wrapped_callable`` with the given arguments. When
+        it is a method, the ``self`` or ``cls`` argument is left out of the key.
+        """
+
         # Have to mangle the args when we're decorating a class method so that the `self`
         # arg doesn't mess with the cache key
         argscopy = args[1:] if cls._is_method(wrapped_callable) else args
@@ -53,6 +60,18 @@ class Cache:
 
 
 class TTLFileCache(Cache):
+    """
+    A cache that stores each entry as a JSON file with an expiry time, used by
+    :py:func:`~flask_quickstart.decorators.ttl_memoize`.
+
+    Expired entries are not removed; :py:meth:`load` reports them as expired so the caller can
+    decide whether to refresh them or keep using them.
+
+    :param storage_folder: The folder to store entries in
+    :param prefix: A subfolder of ``storage_folder`` to use
+    :param default_ttl: How many seconds entries are valid for. Defaults to 900.
+    """
+
     storage_folder = None
     prefix = None
     default_ttl = 900
@@ -108,6 +127,11 @@ class TTLFileCache(Cache):
         )
 
     def expire(self, index=None):
+        """
+        Marks an entry as expired, or every entry when ``index`` is not given. Entries without
+        data are deleted instead.
+        """
+
         if index is not None:
             data = self.load(index)[0]
             if data:
@@ -123,6 +147,8 @@ class TTLFileCache(Cache):
                     logger.exception("Failed to expire cache entry %s", file)
 
     def clear(self):
+        """Deletes every entry, by removing the cache's folder. Returns whether it succeeded."""
+
         try:
             shutil.rmtree(self._storage_full_path)
             return True
@@ -132,6 +158,8 @@ class TTLFileCache(Cache):
             return False
 
     def delete(self, index):
+        """Deletes an entry. Returns whether it is now absent."""
+
         try:
             os.remove(self._get_full_path(index))
             return True
@@ -144,6 +172,13 @@ class TTLFileCache(Cache):
             return False
 
     def load(self, index, *, encoding=None):
+        """
+        Loads an entry.
+
+        :returns: A ``(data, expires_at, is_expired)`` tuple. ``data`` is ``None`` when there is
+            no readable entry, in which case it is reported as expired.
+        """
+
         encoding = encoding if encoding is not None else "utf-8"
         try:
             with open(self._get_full_path(index), encoding=encoding) as datafile:
@@ -158,6 +193,13 @@ class TTLFileCache(Cache):
         return (None, datetime(1970, 1, 1, tzinfo=timezone.utc), True)
 
     def save(self, index, data, *, encoding=None, ttl=None, expire=False):
+        """
+        Saves an entry. Returns whether it succeeded.
+
+        :param ttl: How many seconds the entry is valid for, instead of the default
+        :param expire: Save the entry as already expired
+        """
+
         encoding = encoding if encoding is not None else "utf-8"
         try:
             os.makedirs(self._storage_full_path, exist_ok=True)

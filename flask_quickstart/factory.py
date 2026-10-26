@@ -52,6 +52,16 @@ def matches_any_origin(origin, patterns):
 
 
 def origins_list_to_regex(origins):
+    """
+    Normalizes ``ALLOWED_ORIGINS`` into the list of origins passed to Flask-CORS.
+
+    Origins without a scheme are given ``https://``, and any that look like a regular expression
+    are compiled, case-insensitively.
+
+    :param origins: An origin, a list of them, or a JSON-encoded list of them
+    :returns: A list of origin strings and compiled patterns
+    """
+
     logger.info("Original origins list: %s", origins)
     if not isinstance(
         origins,
@@ -91,6 +101,21 @@ def create_app(
     dynaconf_kwargs=None,
     sentry_kwargs=None,
 ):
+    """
+    Creates a Flask app with configuration loaded by Dynaconf and the quickstart features set up,
+    as described in :doc:`configuration`.
+
+    If creating the app raises an exception, it is retried up to 5 times in total, waiting 1 to 3
+    seconds between attempts, before the exception is re-raised.
+
+    :param name: The import name of the app, passed to :py:class:`~flask.Flask`
+    :param log_level: The level for the app's logger
+    :param flask_kwargs: Extra keyword arguments for :py:class:`~flask.Flask`
+    :param dynaconf_kwargs: Keyword arguments for ``FlaskDynaconf``. The environment variable
+        loader is always included.
+    :param sentry_kwargs: Extra keyword arguments for :py:func:`~flask_quickstart.utils.sentry.setup_sentry`
+    :returns: The configured :py:class:`~flask.Flask` app
+    """
 
     tries = 0
     app = None
