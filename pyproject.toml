@@ -21,7 +21,7 @@ classifiers = [
     'Programming Language :: Python :: 3.14',
     'Topic :: Software Development',
 ]
-readme = "README.md"
+readme = "README.rst"
 license = 'MIT'
 license-files = ["LICEN[CS]E*"]
 requires-python = ">=3.10"
@@ -50,6 +50,10 @@ tests = [
 ]
 lint = [
     'ruff>=0.17',
+]
+docs = [
+    'sphinx>=8.1',
+    'sphinx-rtd-theme>=3.0',
 ]
 
 [project.urls]
