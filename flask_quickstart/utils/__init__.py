@@ -3,6 +3,8 @@
 import random
 import string
 
+from flask import Response
+
 
 def str2bool(s):
     if s == 'False' or s == 'false' or s == 'FALSE' or s == '0':
@@ -10,7 +12,7 @@ def str2bool(s):
     return bool(s)
 
 
-def random_string(length=5):  # pylint: disable=no-self-use
+def random_string(length=5):
     return ''.join(
         random.SystemRandom().choice(string.ascii_lowercase +
                                      string.ascii_uppercase +

@@ -5,15 +5,13 @@ import os
 import logging
 import random
 import re
-import string
 import time
 
 from dynaconf import FlaskDynaconf
-from flask import Flask, abort, request, redirect, Response, jsonify
+from flask import Flask, abort, request
 
 try:
     from flask_cors import CORS
-    from flask_cors.core import probably_regex, try_match_any_pattern
     FLASK_CORS_IMPORT_ERROR = None
 except ImportError as exc:
     FLASK_CORS_IMPORT_ERROR = exc
@@ -27,9 +25,29 @@ except ImportError as exc:
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .converters import DateConverter
-from .lib.json import ExtendedEncoder
+from .lib.json import ExtendedJSONProvider
 from .utils import forced_relative_redirect
 from .utils.sentry import setup_sentry
+
+
+# Characters common in regular expressions, used as a proxy for whether an origin is a regex
+REGEX_HINT_CHARS = frozenset('*\\]?$^[]()')
+
+
+def probably_regex(maybe_regex):
+    if isinstance(maybe_regex, re.Pattern):
+        return True
+    return not REGEX_HINT_CHARS.isdisjoint(maybe_regex)
+
+
+def matches_any_origin(origin, patterns):
+    for pattern in patterns:
+        if isinstance(pattern, re.Pattern):
+            if pattern.match(origin):
+                return True
+        elif origin.casefold() == pattern.casefold():
+            return True
+    return False
 
 
 def origins_list_to_regex(origins):
@@ -46,7 +64,7 @@ def origins_list_to_regex(origins):
             string = f'https://{string}'
 
         if probably_regex(string):
-            regex_list.append(re.compile(rf'{string}'))
+            regex_list.append(re.compile(string, re.IGNORECASE))
         else:
             regex_list.append(string)
 
@@ -134,8 +152,9 @@ def _create_app(
     logging.getLogger('sentry').setLevel(app.config.get('SENTRY_LOG_LEVEL', logging.CRITICAL))
     logging.getLogger('sqlalchemy.engine').setLevel(app.config.get('SQLALCHEMY_LOG_LEVEL', logging.CRITICAL))
 
+    allowed_origins = origins_list_to_regex(app.config.get('ALLOWED_ORIGINS', ['.*']))
+
     if FLASK_CORS_IMPORT_ERROR is None:
-        allowed_origins = origins_list_to_regex(app.config.get('ALLOWED_ORIGINS', ['.*']))
         CORS(app, origins=allowed_origins, supports_credentials=True)
     else:
         app.logger.warning('Flask-CORS failed to import:')
@@ -147,7 +166,7 @@ def _create_app(
         app.logger.warning('Flask-CSP failed to import:')
         app.logger.exception(FLASK_CSP_IMPORT_ERROR)
 
-    app.json_encoder = ExtendedEncoder
+    app.json = ExtendedJSONProvider(app)
 
     if app.config.get('NUM_PROXIES'):
         app.wsgi_app = ProxyFix(
@@ -160,7 +179,7 @@ def _create_app(
     if app.config.get('SHORTCIRCUIT_OPTIONS', False):
 
         def is_allowed_origin():
-            if app.allowed_origins:
+            if allowed_origins:
                 origin = request.headers.get('Origin')
 
                 if not origin:
@@ -168,8 +187,8 @@ def _create_app(
                     return False
 
                 if (
-                        not try_match_any_pattern(origin, app.allowed_origins, caseSensitive=False) and
-                        not try_match_any_pattern(f'{origin}/', app.allowed_origins, caseSensitive=False)
+                        not matches_any_origin(origin, allowed_origins) and
+                        not matches_any_origin(f'{origin}/', allowed_origins)
                 ):
                     app.logger.debug('Origin header not in allowed list: {}'.format(origin))
                     return False
@@ -178,7 +197,7 @@ def _create_app(
 
         @app.before_request
         def chk_shortcircuit():
-            if request.method == 'OPTION':
+            if request.method == 'OPTIONS':
                 app.logger.debug('Shortcircuiting OPTIONS request')
                 if is_allowed_origin():
                     return '', 200
@@ -204,7 +223,7 @@ def _create_app(
             if response.status_code != 200:
                 return response
 
-            content_type = response.headers.get('Content-Type')
+            content_type = response.headers.get('Content-Type', '')
             if 'text' in content_type or 'application' in content_type:
                 return response
 

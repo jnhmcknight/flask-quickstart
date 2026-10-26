@@ -3,8 +3,9 @@ import inspect
 import json
 import logging
 import os
+import shutil
 
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from hashlib import sha1
 
 from ..lib.json import ExtendedEncoder
@@ -17,7 +18,7 @@ class Cache:
     _data = None
 
     @classmethod
-    def _serialize_args(cls, *args, **kwargs):  # pylint: disable=no-self-use
+    def _serialize_args(cls, *args, **kwargs):
         call_args = {"args": args, "kwargs": kwargs}
         return json.dumps(call_args, cls=ExtendedEncoder, sort_keys=True, default=str)
 
@@ -27,8 +28,8 @@ class Cache:
 
     @classmethod
     def _is_method(cls, func):
-        spec = inspect.getargspec(func)
-        return spec.args and spec.args[0] in ["self", "cls"]
+        params = list(inspect.signature(func).parameters)
+        return bool(params) and params[0] in ["self", "cls"]
 
     @classmethod
     def make_key(cls, wrapped_callable, *args, **kwargs):
@@ -66,7 +67,7 @@ class TTLFileCache(Cache):
         self.storage_folder = storage_folder
         self.prefix = prefix
 
-        if int(default_ttl) > 0:
+        if default_ttl and int(default_ttl) > 0:
             self.default_ttl = int(default_ttl)
 
     @property
@@ -87,18 +88,19 @@ class TTLFileCache(Cache):
         )
 
     @property
-    def _now(self):  # pylint: disable=no-self-use
-        return datetime.utcnow()
+    def _now(self):
+        return datetime.now(timezone.utc)
 
     def _wrap(self, data, *, ttl=None, expire=False):
         expiry = self._now if expire else (self._now + timedelta(seconds=ttl or self.default_ttl))
         return {
-            'expires': expiry,
+            'expires': expiry.isoformat(),
             'data': data,
         }
 
     def _unwrap(self, data):
-        return (data['data'], data['expires'], (self._now > data['expires']),)
+        expires = datetime.fromisoformat(data['expires'])
+        return (data['data'], expires, (self._now > expires),)
 
     def expire(self, index=None):
         if index is not None:
@@ -113,7 +115,7 @@ class TTLFileCache(Cache):
                 try:
                     self.expire(file)
                 except Exception as exc:  # pylint: disable=broad-except
-                    logger.excetion(exc)
+                    logger.exception(exc)
 
     def clear(self):
         try:
@@ -126,9 +128,13 @@ class TTLFileCache(Cache):
 
     def delete(self, index):
         try:
-            return os.remove(self._get_full_path(index))
+            os.remove(self._get_full_path(index))
+            return True
 
-        except OSError:
+        except FileNotFoundError:
+            return True
+
+        except OSError as exc:
             logger.exception(exc)
             return False
 
@@ -138,18 +144,22 @@ class TTLFileCache(Cache):
             with open(self._get_full_path(index), 'r', encoding=encoding) as datafile:
                 return self._unwrap(json.load(datafile))
 
-        except OSError as exc:
+        except FileNotFoundError:
+            pass
+
+        except (OSError, ValueError, KeyError) as exc:
             logger.exception(exc)
-            return (None, datetime(1970, 1, 1, 0, 0), True)
+
+        return (None, datetime(1970, 1, 1, tzinfo=timezone.utc), True)
 
     def save(self, index, data, *, encoding=None, ttl=None, expire=False):
         encoding = encoding if encoding is not None else 'utf-8'
         try:
             os.makedirs(self._storage_full_path, exist_ok=True)
             with open(self._get_full_path(index), 'w', encoding=encoding) as datafile:
-                json.dump(self._wrap(data, ttl=ttl, expire=expire), datafile)
+                json.dump(self._wrap(data, ttl=ttl, expire=expire), datafile, cls=ExtendedEncoder)
             return True
 
-        except OSError as exc:
+        except (OSError, TypeError) as exc:
             logger.exception(exc)
             return False

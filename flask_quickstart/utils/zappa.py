@@ -1,4 +1,6 @@
 
+import json
+
 import sentry_sdk
 
 from .sentry import setup_sentry
@@ -9,13 +11,12 @@ def zappa_handler(e, event, context):
 
     setup_sentry()
 
-    with sentry_sdk.configure_scope() as scope:
+    with sentry_sdk.new_scope() as scope:
         scope.set_tag('handler', 'raw-zappa')
 
         try:
-            package_info_file = open('package_info.json', 'r')
-            package_info = json.load(package_info_file)
-            package_info_file.close()
+            with open('package_info.json', 'r', encoding='utf-8') as package_info_file:
+                package_info = json.load(package_info_file)
 
             for key, value in package_info.items():
                 scope.set_tag(key, value)
@@ -39,7 +40,8 @@ def zappa_handler(e, event, context):
 
         scope.set_extra('event', event)
 
-    sentry_sdk.capture_exception(e)
+        sentry_sdk.capture_exception(e)
+
     return False
 
 

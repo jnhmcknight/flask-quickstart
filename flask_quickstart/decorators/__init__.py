@@ -4,6 +4,7 @@ from functools import wraps
 from flask import current_app
 
 from .cache import Cache, TTLFileCache
+from ..utils.sentry import capture_exception
 
 
 def memoize(force_refresh_callable=None):
@@ -18,7 +19,7 @@ def memoize(force_refresh_callable=None):
     def decorator(obj):
         @wraps(obj)
         def memoizer(*args, **kwargs):
-            if not obj.cache:
+            if getattr(obj, 'cache', None) is None:
                 obj.cache = Cache()
 
             force_refresh = False
@@ -34,7 +35,7 @@ def memoize(force_refresh_callable=None):
                     )
                     force_refresh = force_refresh_callable
 
-            index = obj.cache.make_key(obj, *argscopy, **kwargs)
+            index = obj.cache.make_key(obj, *args, **kwargs)
             data = obj.cache.load(index)
 
             if not data or force_refresh:
@@ -66,14 +67,14 @@ def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
                 )
                 return obj(*args, **kwargs)
 
-            if not obj.cache:
+            if getattr(obj, 'cache', None) is None:
                 obj.cache = TTLFileCache(
                     current_app.config.CACHE_STORAGE_FOLDER,
                     prefix=obj.__name__,
                     default_ttl=default_ttl or current_app.config.get("CACHE_TTL"),
                 )
 
-            index = obj.cache.make_key(obj, *argscopy, **kwargs)
+            index = obj.cache.make_key(obj, *args, **kwargs)
             current_app.logger.debug("Cache key is: %s" % index)
 
             data, expires_at, force_refresh = obj.cache.load(index)
@@ -104,7 +105,7 @@ def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
                     capture_exception(exc)
                     current_app.logger.exception(exc)
                     if data:
-                        current_app.logger.warn(
+                        current_app.logger.warning(
                             "Serving response from the cache, memoized function failed"
                         )
                         return data
@@ -113,15 +114,15 @@ def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
 
                 if newdata:
                     if obj.cache.save(index, newdata):
-                        current_app.logger.debug(
-                            "Saved to cache, will expire at: %s" % expires_at
-                        )
+                        current_app.logger.debug("Saved to cache")
 
                 else:
                     current_app.logger.debug(
                         "Upstream response was empty, ensuring old cached entry is removed"
                     )
                     obj.cache.delete(index)
+
+                data = newdata
 
             else:
                 current_app.logger.debug(

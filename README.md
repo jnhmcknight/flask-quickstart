@@ -1,4 +1,15 @@
 
+Requires Python 3.10+ and Flask 3.
+
+Installation (extras: `cors`, `csp`, `sentry`, `full`):
+
+```
+pip install "flask-quickstart[full] @ git+https://github.com/jnhmcknight/flask-quickstart.git"
+```
+
+The `csp` extra installs [fictive-kin/flask-csp](https://github.com/fictive-kin/flask-csp) from git,
+not the unrelated `flask-csp` package on PyPI.
+
 Basic configuration:
 
 ```

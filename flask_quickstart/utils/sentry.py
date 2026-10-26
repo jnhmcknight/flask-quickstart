@@ -4,19 +4,34 @@ application.utils.sentry
 Sentry utilities
 """
 
-import json
 import logging
 import os
-import urllib
+import urllib.parse
 
 try:
     import sentry_sdk
 
     from sentry_sdk.integrations.boto3 import Boto3Integration
     from sentry_sdk.integrations.flask import FlaskIntegration
+    from sentry_sdk.transport import Transport
     SENTRY_IMPORT_ERROR = None
 except ImportError as exc:
     SENTRY_IMPORT_ERROR = exc
+    Transport = object
+
+
+class PrintTransport(Transport):
+    """Prints envelopes instead of sending them, for use when debugging."""
+
+    def capture_envelope(self, envelope):
+        print(envelope.serialize().decode('utf-8', errors='replace'))
+
+
+def capture_exception(exc):
+    """Report an exception to Sentry if it is available, otherwise do nothing."""
+
+    if SENTRY_IMPORT_ERROR is None:
+        sentry_sdk.capture_exception(exc)
 
 
 # Keys to values we wish to redact before sending to Sentry.
@@ -79,7 +94,10 @@ def setup_sentry(config=None, *, dsn=None, **kwargs):
         logging.exception(SENTRY_IMPORT_ERROR)
         return
 
-    if config.get('ENV', '').lower() in ("development", "testing"):
+    if config is None:
+        config = {}
+
+    if (config.get('ENV') or '').lower() in ("development", "testing"):
         print("[WARNING] Not setting up Sentry due to environment")
         return
 
@@ -97,12 +115,11 @@ def setup_sentry(config=None, *, dsn=None, **kwargs):
         print("[WARNING] Cannot setup Sentry. No DSN found")
         return
 
-    if 'transport' not in kwargs or not kwargs['transport']:
-        # This isn't actually a syntax error, because `print` is a function in py3 and not a
-        # statement.
-        kwargs['transport'] = (
-            sentry_sdk.transport.HttpTransport if kwargs.get('debug') is not True else print
-        )
+    if not kwargs.get('transport'):
+        # Let Sentry pick its default HTTP transport, except when debugging
+        kwargs.pop('transport', None)
+        if kwargs.get('debug') is True:
+            kwargs['transport'] = PrintTransport
 
     if 'environment' not in kwargs:
         kwargs['environment'] = config.get('ENV')

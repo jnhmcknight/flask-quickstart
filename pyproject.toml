@@ -1,49 +1,51 @@
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 
 [project]
 name = 'flask-quickstart'
 description = 'A quick start for commonly used features of a Flask app'
-version = '0.8.1'
+version = '1.0.1'
 authors = [
     { name='Fictive Kin LLC', email='hello@fictivekin.com' },
 ]
 classifiers = [
     'Development Status :: 4 - Beta',
-    'Programming Language :: Python :: 3.8',
-    'Programming Language :: Python :: 3.9',
+    'Framework :: Flask',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     'Topic :: Software Development',
 ]
 readme = "README.md"
 license = 'MIT'
-license-files = ["LICEN[CS]E.*"]
-requires-python = ">=3.8"
+license-files = ["LICEN[CS]E*"]
+requires-python = ">=3.10"
 dependencies = [
     'boto3',
     'botocore',
-    'certifi',
-    'dynaconf',
-    'flask',
-    'pytz',
-    'werkzeug',
+    'dynaconf>=3.2',
+    'flask>=3.0',
+    'werkzeug>=3.0',
 ]
 
 [project.optional-dependencies]
-sentry = ['sentry-sdk[flask]']
-csp = ['flask-csp']
+sentry = ['sentry-sdk[flask]>=2.0']
+# Not the `flask-csp` on PyPI, which is an unrelated project
+csp = ['flask-csp @ git+https://github.com/fictive-kin/flask-csp.git@d856f0b5d45b9cc8934f474228ba2397acffb3eb']
 cors = ['flask-cors>=6.0.0']
 full = [
-    'flask-csp',
+    'flask-csp @ git+https://github.com/fictive-kin/flask-csp.git@d856f0b5d45b9cc8934f474228ba2397acffb3eb',
     'flask-cors>=6.0.0',
-    'sentry-sdk[flask]',
+    'sentry-sdk[flask]>=2.0',
 ]
 
 [project.urls]
-Homepage = 'https://github.com/fictivekin/flask-quickstart'
+Homepage = 'https://github.com/jnhmcknight/flask-quickstart'
+
+[tool.setuptools.packages.find]
+include = ['flask_quickstart*']
