@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = 'flask-quickstart'
 description = 'A quick start for commonly used features of a Flask app'
-version = '1.0.1'
+version = '1.1.1'
 authors = [
     { name='Fictive Kin LLC', email='hello@fictivekin.com' },
 ]
@@ -36,12 +36,17 @@ dependencies = [
 [project.optional-dependencies]
 sentry = ['sentry-sdk[flask]>=2.0']
 # Not the `flask-csp` on PyPI, which is an unrelated project
-csp = ['flask-csp @ git+https://github.com/fictive-kin/flask-csp.git@d856f0b5d45b9cc8934f474228ba2397acffb3eb']
+csp = ['flask-csp @ git+https://github.com/fictive-kin/flask-csp.git@v1.1.1']
 cors = ['flask-cors>=6.0.0']
 full = [
-    'flask-csp @ git+https://github.com/fictive-kin/flask-csp.git@d856f0b5d45b9cc8934f474228ba2397acffb3eb',
+    'flask-csp @ git+https://github.com/fictive-kin/flask-csp.git@v1.1.1',
     'flask-cors>=6.0.0',
     'sentry-sdk[flask]>=2.0',
+]
+tests = [
+    'flask-quickstart[full]',
+    'pytest',
+    'pytest-randomly',
 ]
 
 [project.urls]
@@ -49,3 +54,6 @@ Homepage = 'https://github.com/jnhmcknight/flask-quickstart'
 
 [tool.setuptools.packages.find]
 include = ['flask_quickstart*']
+
+[tool.pytest.ini_options]
+testpaths = ['tests']
