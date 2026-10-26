@@ -1,0 +1,5 @@
+# Format with ruff
+b066cbcaad0b4b45169a33e49d637c64de379267
+
+# Apply ruff's safe lint fixes (import sorting, coding declarations, etc.)
+7e755b20e4097836a115d3a667177f590c188abd
