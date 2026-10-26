@@ -127,9 +127,9 @@ Requests and responses
    app is behind proxies that set those headers, since clients can otherwise forge them.
 
 ``RELATIVE_REDIRECTS`` (:py:class:`bool`)
-   Redirect any path ending in a slash to the same path without it, e.g. ``/about/`` to
-   ``/about``, using a ``302`` with a relative ``Location`` header. The query string is not
-   kept. Defaults to ``False``.
+   Redirect any path ending in a slash to the same path without it, e.g. ``/about/?page=2`` to
+   ``/about?page=2``, using a ``302`` with a relative ``Location`` header. Defaults to
+   ``False``.
 
 ``ADD_CACHE_HEADERS`` (:py:class:`bool`)
    Make browsers and CDNs cache successful responses for files such as images, fonts, audio and

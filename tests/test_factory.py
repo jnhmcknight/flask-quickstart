@@ -264,6 +264,28 @@ def test_relative_redirects(make_app):
     assert client.get("/").status_code == 404
 
 
+@pytest.mark.parametrize(
+    "query_string",
+    ["q=1", "q=a%20b&x=%2F", "q=caf%C3%A9"],
+)
+def test_relative_redirects_keep_query_string(make_app, query_string):
+    app = add_routes(make_app(RELATIVE_REDIRECTS=True))
+    resp = app.test_client().get(f"/text/?{query_string}")
+
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == f"/text?{query_string}"
+
+
+@pytest.mark.parametrize("path", ["//evil.com/", "///evil.com/", "/\\evil.com/"])
+def test_relative_redirects_stay_on_site(make_app, path):
+    app = make_app(RELATIVE_REDIRECTS=True)
+    resp = app.test_client().get("/", environ_overrides={"PATH_INFO": path})
+
+    location = resp.headers["Location"]
+    assert location.startswith("/")
+    assert not location.startswith(("//", "/\\"))
+
+
 def test_trailing_slash_without_relative_redirects(app):
     assert add_routes(app).test_client().get("/text/").status_code == 404
 

@@ -265,7 +265,10 @@ def _create_app(
         def clear_trailing():
             rp = request.path
             if rp != "/" and rp.endswith("/"):
-                return forced_relative_redirect(rp[:-1], code=302)
+                target = rp[:-1]
+                if request.query_string:
+                    target = f"{target}?{request.query_string.decode('latin-1')}"
+                return forced_relative_redirect(target, code=302)
 
     if app.config.get("ADD_CACHE_HEADERS", False):
 
