@@ -15,10 +15,10 @@ def clean_env(monkeypatch):
     """Ensure that settings from the surrounding shell don't leak into the app config"""
 
     for key in list(os.environ):
-        if key.startswith(('FLASK_', 'SENTRY_')) or key == 'ENV_FOR_DYNACONF':
+        if key.startswith(("FLASK_", "SENTRY_")) or key == "ENV_FOR_DYNACONF":
             monkeypatch.delenv(key)
 
-    monkeypatch.setenv('FLASK_ENV', 'testing')
+    monkeypatch.setenv("FLASK_ENV", "testing")
 
 
 @pytest.fixture()
@@ -28,9 +28,11 @@ def make_app(monkeypatch):
     provided the same way a deployed app gets them: as `FLASK_*` env vars loaded by Dynaconf.
     """
 
-    def _make_app(name='testing', **config):
+    def _make_app(name="testing", **config):
         for key, value in config.items():
-            monkeypatch.setenv(f'FLASK_{key}', value if isinstance(value, str) else json.dumps(value))
+            monkeypatch.setenv(
+                f"FLASK_{key}", value if isinstance(value, str) else json.dumps(value)
+            )
         return create_app(name)
 
     return _make_app

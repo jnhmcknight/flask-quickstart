@@ -1,4 +1,3 @@
-
 import json
 
 import sentry_sdk
@@ -12,10 +11,10 @@ def zappa_handler(e, event, context):
     setup_sentry()
 
     with sentry_sdk.new_scope() as scope:
-        scope.set_tag('handler', 'raw-zappa')
+        scope.set_tag("handler", "raw-zappa")
 
         try:
-            with open('package_info.json', 'r', encoding='utf-8') as package_info_file:
+            with open("package_info.json", "r", encoding="utf-8") as package_info_file:
                 package_info = json.load(package_info_file)
 
             for key, value in package_info.items():
@@ -25,20 +24,20 @@ def zappa_handler(e, event, context):
             # not deployed, probably a test
             pass
 
-        if 'httpMethod' in event:
-            scope.set_tag('http_method', event['httpMethod'])
-            scope.set_tag('path', event['path'])
+        if "httpMethod" in event:
+            scope.set_tag("http_method", event["httpMethod"])
+            scope.set_tag("path", event["path"])
 
-        if 'headers' in event:
-            if 'Host' in event['headers']:
-                scope.set_tag('host', event['headers']['Host'])
-            if 'User-Agent' in event['headers']:
-                scope.set_tag('user_agent', event['headers']['User-Agent'])
+        if "headers" in event:
+            if "Host" in event["headers"]:
+                scope.set_tag("host", event["headers"]["Host"])
+            if "User-Agent" in event["headers"]:
+                scope.set_tag("user_agent", event["headers"]["User-Agent"])
 
-        if 'requestContext' in event and 'stage' in event['requestContext']:
-            scope.set_tag('stage', event['requestContext']['stage'])
+        if "requestContext" in event and "stage" in event["requestContext"]:
+            scope.set_tag("stage", event["requestContext"]["stage"])
 
-        scope.set_extra('event', event)
+        scope.set_extra("event", event)
 
         sentry_sdk.capture_exception(e)
 

@@ -14,6 +14,7 @@ try:
     from sentry_sdk.integrations.boto3 import Boto3Integration
     from sentry_sdk.integrations.flask import FlaskIntegration
     from sentry_sdk.transport import Transport
+
     SENTRY_IMPORT_ERROR = None
 except ImportError as exc:
     SENTRY_IMPORT_ERROR = exc
@@ -24,7 +25,7 @@ class PrintTransport(Transport):
     """Prints envelopes instead of sending them, for use when debugging."""
 
     def capture_envelope(self, envelope):
-        print(envelope.serialize().decode('utf-8', errors='replace'))
+        print(envelope.serialize().decode("utf-8", errors="replace"))
 
 
 def capture_exception(exc):
@@ -90,24 +91,23 @@ def strip_sensitive_data(event, hint):
 def setup_sentry(config=None, *, dsn=None, **kwargs):
 
     if SENTRY_IMPORT_ERROR is not None:
-        logging.warning('Sentry cannot be instantiated, it failed to import in this virtual environment:')
+        logging.warning(
+            "Sentry cannot be instantiated, it failed to import in this virtual environment:"
+        )
         logging.exception(SENTRY_IMPORT_ERROR)
         return
 
     if config is None:
         config = {}
 
-    if (config.get('ENV') or '').lower() in ("development", "testing"):
+    if (config.get("ENV") or "").lower() in ("development", "testing"):
         print("[WARNING] Not setting up Sentry due to environment")
         return
 
     if dsn is None:
         dsn = config.get(
-            'SENTRY_DSN',
-            os.environ.get(
-                'SENTRY_DSN',
-                os.environ.get('FLASK_SENTRY_DSN')
-            )
+            "SENTRY_DSN",
+            os.environ.get("SENTRY_DSN", os.environ.get("FLASK_SENTRY_DSN")),
         )
 
     # Using this as a truthy value, since we don't want to allow "", None or False as DSNs
@@ -115,35 +115,35 @@ def setup_sentry(config=None, *, dsn=None, **kwargs):
         print("[WARNING] Cannot setup Sentry. No DSN found")
         return
 
-    if not kwargs.get('transport'):
+    if not kwargs.get("transport"):
         # Let Sentry pick its default HTTP transport, except when debugging
-        kwargs.pop('transport', None)
-        if kwargs.get('debug') is True:
-            kwargs['transport'] = PrintTransport
+        kwargs.pop("transport", None)
+        if kwargs.get("debug") is True:
+            kwargs["transport"] = PrintTransport
 
-    if 'environment' not in kwargs:
-        kwargs['environment'] = config.get('ENV')
+    if "environment" not in kwargs:
+        kwargs["environment"] = config.get("ENV")
 
-    if 'integrations' not in kwargs or not kwargs['integrations']:
-        kwargs['integrations'] = []
-    elif not isinstance(kwargs['integrations'], list):
-        kwargs['integrations'] = [kwargs['integrations']]
+    if "integrations" not in kwargs or not kwargs["integrations"]:
+        kwargs["integrations"] = []
+    elif not isinstance(kwargs["integrations"], list):
+        kwargs["integrations"] = [kwargs["integrations"]]
 
     add_boto3_int = True
     add_flask_int = True
-    for integration in kwargs['integrations']:
+    for integration in kwargs["integrations"]:
         if isinstance(integration, Boto3Integration):
             add_boto3_int = False
         elif isinstance(integration, FlaskIntegration):
             add_flask_int = False
 
     if add_boto3_int:
-        kwargs['integrations'].append(Boto3Integration())
+        kwargs["integrations"].append(Boto3Integration())
     if add_flask_int:
-        kwargs['integrations'].append(FlaskIntegration())
+        kwargs["integrations"].append(FlaskIntegration())
 
-    if 'traces_sample_rate' not in kwargs:
+    if "traces_sample_rate" not in kwargs:
         # 0 = no sampling, 1 = 100% sampling
-        kwargs['traces_sample_rate'] = 0.1  # default is 10% of requests
+        kwargs["traces_sample_rate"] = 0.1  # default is 10% of requests
 
     sentry_sdk.init(dsn=dsn, **kwargs)

@@ -1,4 +1,3 @@
-
 from functools import wraps
 
 from flask import current_app
@@ -19,7 +18,7 @@ def memoize(force_refresh_callable=None):
     def decorator(obj):
         @wraps(obj)
         def memoizer(*args, **kwargs):
-            if getattr(obj, 'cache', None) is None:
+            if getattr(obj, "cache", None) is None:
                 obj.cache = Cache()
 
             force_refresh = False
@@ -67,7 +66,7 @@ def ttl_memoize(force_refresh_callable=None, *, default_ttl=None):
                 )
                 return obj(*args, **kwargs)
 
-            if getattr(obj, 'cache', None) is None:
+            if getattr(obj, "cache", None) is None:
                 obj.cache = TTLFileCache(
                     current_app.config.CACHE_STORAGE_FOLDER,
                     prefix=obj.__name__,

@@ -12,12 +12,14 @@ from flask import Flask, abort, request
 
 try:
     from flask_cors import CORS
+
     FLASK_CORS_IMPORT_ERROR = None
 except ImportError as exc:
     FLASK_CORS_IMPORT_ERROR = exc
 
 try:
     from flask_csp import CSP
+
     FLASK_CSP_IMPORT_ERROR = None
 except ImportError as exc:
     FLASK_CSP_IMPORT_ERROR = exc
@@ -31,7 +33,7 @@ from .utils.sentry import setup_sentry
 
 
 # Characters common in regular expressions, used as a proxy for whether an origin is a regex
-REGEX_HINT_CHARS = frozenset('*\\]?$^[]()')
+REGEX_HINT_CHARS = frozenset("*\\]?$^[]()")
 
 
 def probably_regex(maybe_regex):
@@ -51,17 +53,28 @@ def matches_any_origin(origin, patterns):
 
 
 def origins_list_to_regex(origins):
-    logging.info(f'Original origins list: {origins}')
-    if not isinstance(origins, (list, set, tuple,)):
-        if isinstance(origins, str) and origins.startswith('[') and origins.endswith(']'):
+    logging.info(f"Original origins list: {origins}")
+    if not isinstance(
+        origins,
+        (
+            list,
+            set,
+            tuple,
+        ),
+    ):
+        if (
+            isinstance(origins, str)
+            and origins.startswith("[")
+            and origins.endswith("]")
+        ):
             origins = json.loads(origins)
         else:
             origins = [origins]
 
     regex_list = []
     for string in origins:
-        if not string.startswith('http://') and not string.startswith('https://'):
-            string = f'https://{string}'
+        if not string.startswith("http://") and not string.startswith("https://"):
+            string = f"https://{string}"
 
         if probably_regex(string):
             regex_list.append(re.compile(string, re.IGNORECASE))
@@ -72,7 +85,8 @@ def origins_list_to_regex(origins):
 
 
 def create_app(
-    name, *,
+    name,
+    *,
     log_level=logging.WARN,
     flask_kwargs=None,
     dynaconf_kwargs=None,
@@ -95,17 +109,20 @@ def create_app(
             logging.exception(exc)
 
             if tries >= 5:
-                logging.critical('Number of allowed app instantiation retries has been exceeded.')
+                logging.critical(
+                    "Number of allowed app instantiation retries has been exceeded."
+                )
                 raise exc
 
-            time.sleep(random.randint(1,3))
+            time.sleep(random.randint(1, 3))
             app = None
 
     return app
 
 
 def _create_app(
-    name, *,
+    name,
+    *,
     log_level=logging.WARN,
     flask_kwargs=None,
     dynaconf_kwargs=None,
@@ -117,16 +134,18 @@ def _create_app(
 
     if dynaconf_kwargs is None:
         dynaconf_kwargs = {
-            'extensions': True,
-            'LOADERS_FOR_DYNACONF': [
-                'dynaconf.loaders.env_loader',
+            "extensions": True,
+            "LOADERS_FOR_DYNACONF": [
+                "dynaconf.loaders.env_loader",
             ],
         }
 
-    elif 'LOADERS_FOR_DYNACONF' in dynaconf_kwargs:
+    elif "LOADERS_FOR_DYNACONF" in dynaconf_kwargs:
         # We always want to load env vars, so make sure this is here
-        if 'dynaconf.loaders.env_loader' not in dynaconf_kwargs['LOADERS_FOR_DYNACONF']:
-            dynaconf_kwargs['LOADERS_FOR_DYNACONF'].append('dynaconf.loaders.env_loader')
+        if "dynaconf.loaders.env_loader" not in dynaconf_kwargs["LOADERS_FOR_DYNACONF"]:
+            dynaconf_kwargs["LOADERS_FOR_DYNACONF"].append(
+                "dynaconf.loaders.env_loader"
+            )
 
     if sentry_kwargs is None:
         sentry_kwargs = {}
@@ -134,41 +153,49 @@ def _create_app(
     app = Flask(name, **flask_kwargs)
     FlaskDynaconf(app, **dynaconf_kwargs)
 
-    app.url_map.converters['date'] = DateConverter
+    app.url_map.converters["date"] = DateConverter
 
     app.logger.setLevel(log_level)
     app.logger.propagate = True
 
     # Set env var for use in Sentry and other various plugins
-    if not app.config.get('ENV'):
+    if not app.config.get("ENV"):
         app.config.ENV = os.environ.get(
-            'FLASK_ENV', os.environ.get('ENV_FOR_DYNACONF', 'development')
+            "FLASK_ENV", os.environ.get("ENV_FOR_DYNACONF", "development")
         )
 
     setup_sentry(app.config, debug=app.debug, **sentry_kwargs)
 
-    logging.getLogger('boto3').setLevel(app.config.get('BOTO3_LOG_LEVEL', logging.CRITICAL))
-    logging.getLogger('botocore').setLevel(app.config.get('BOTOCORE_LOG_LEVEL', logging.CRITICAL))
-    logging.getLogger('sentry').setLevel(app.config.get('SENTRY_LOG_LEVEL', logging.CRITICAL))
-    logging.getLogger('sqlalchemy.engine').setLevel(app.config.get('SQLALCHEMY_LOG_LEVEL', logging.CRITICAL))
+    logging.getLogger("boto3").setLevel(
+        app.config.get("BOTO3_LOG_LEVEL", logging.CRITICAL)
+    )
+    logging.getLogger("botocore").setLevel(
+        app.config.get("BOTOCORE_LOG_LEVEL", logging.CRITICAL)
+    )
+    logging.getLogger("sentry").setLevel(
+        app.config.get("SENTRY_LOG_LEVEL", logging.CRITICAL)
+    )
+    logging.getLogger("sqlalchemy.engine").setLevel(
+        app.config.get("SQLALCHEMY_LOG_LEVEL", logging.CRITICAL)
+    )
 
-    allowed_origins = origins_list_to_regex(app.config.get('ALLOWED_ORIGINS', ['.*']))
+    allowed_origins = origins_list_to_regex(app.config.get("ALLOWED_ORIGINS", [".*"]))
 
     if FLASK_CORS_IMPORT_ERROR is None:
         CORS(app, origins=allowed_origins, supports_credentials=True)
     else:
-        app.logger.warning('Flask-CORS failed to import:')
+        app.logger.warning("Flask-CORS failed to import:")
         app.logger.exception(FLASK_CORS_IMPORT_ERROR)
 
     if FLASK_CSP_IMPORT_ERROR is None:
         CSP(app)
     else:
-        app.logger.warning('Flask-CSP failed to import:')
+        app.logger.warning("Flask-CSP failed to import:")
         app.logger.exception(FLASK_CSP_IMPORT_ERROR)
 
     app.json = ExtendedJSONProvider(app)
 
-    if app.config.get('NUM_PROXIES'):
+    if app.config.get("NUM_PROXIES"):
         app.wsgi_app = ProxyFix(
             app.wsgi_app,
             x_for=app.config.NUM_PROXIES,
@@ -176,61 +203,66 @@ def _create_app(
             x_host=app.config.NUM_PROXIES,
         )
 
-    if app.config.get('SHORTCIRCUIT_OPTIONS', False):
+    if app.config.get("SHORTCIRCUIT_OPTIONS", False):
 
         def is_allowed_origin():
             if allowed_origins:
-                origin = request.headers.get('Origin')
+                origin = request.headers.get("Origin")
 
                 if not origin:
-                    app.logger.debug('Origin header not provided')
+                    app.logger.debug("Origin header not provided")
                     return False
 
-                if (
-                        not matches_any_origin(origin, allowed_origins) and
-                        not matches_any_origin(f'{origin}/', allowed_origins)
-                ):
-                    app.logger.debug('Origin header not in allowed list: {}'.format(origin))
+                if not matches_any_origin(
+                    origin, allowed_origins
+                ) and not matches_any_origin(f"{origin}/", allowed_origins):
+                    app.logger.debug(
+                        "Origin header not in allowed list: {}".format(origin)
+                    )
                     return False
 
             return True
 
         @app.before_request
         def chk_shortcircuit():
-            if request.method == 'OPTIONS':
-                app.logger.debug('Shortcircuiting OPTIONS request')
+            if request.method == "OPTIONS":
+                app.logger.debug("Shortcircuiting OPTIONS request")
                 if is_allowed_origin():
-                    return '', 200
+                    return "", 200
                 return abort(403)
 
             # If we get here, we're neither shortcircuiting OPTIONS requests, let the view
             # deal with it directly.
             return None
 
-    if app.config.get('RELATIVE_REDIRECTS', False):
+    if app.config.get("RELATIVE_REDIRECTS", False):
         app.url_map.strict_slashes = False
 
         @app.before_request
         def clear_trailing():
             rp = request.path
-            if rp != '/' and rp.endswith('/'):
+            if rp != "/" and rp.endswith("/"):
                 return forced_relative_redirect(rp[:-1], code=302)
 
-    if app.config.get('ADD_CACHE_HEADERS', False):
+    if app.config.get("ADD_CACHE_HEADERS", False):
 
         @app.after_request
         def add_cache_headers(response):
             if response.status_code != 200:
                 return response
 
-            content_type = response.headers.get('Content-Type', '')
-            if 'text' in content_type or 'application' in content_type:
+            content_type = response.headers.get("Content-Type", "")
+            if "text" in content_type or "application" in content_type:
                 return response
 
-            if not response.headers.get('Cache-Control'):
-                response.headers['Cache-Control'] = 'public,max-age=2592000,s-maxage=2592000,immutable'
-            if not response.headers.get('Vary'):
-                response.headers['Vary'] = 'Accept-Encoding,Origin,Access-Control-Request-Headers,Access-Control-Request-Method'
+            if not response.headers.get("Cache-Control"):
+                response.headers["Cache-Control"] = (
+                    "public,max-age=2592000,s-maxage=2592000,immutable"
+                )
+            if not response.headers.get("Vary"):
+                response.headers["Vary"] = (
+                    "Accept-Encoding,Origin,Access-Control-Request-Headers,Access-Control-Request-Method"
+                )
 
             return response
 

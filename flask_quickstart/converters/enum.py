@@ -1,4 +1,3 @@
-
 from enum import Enum, EnumMeta
 
 from werkzeug.routing import BaseConverter, ValidationError
@@ -6,8 +5,14 @@ from werkzeug.routing import BaseConverter, ValidationError
 
 def setup_enum_converter(enum_to_convert):
 
-    if not isinstance(enum_to_convert, (Enum, EnumMeta,)):
-        raise ValueError(f'{enum_to_convert.__name__} is not an Enum')
+    if not isinstance(
+        enum_to_convert,
+        (
+            Enum,
+            EnumMeta,
+        ),
+    ):
+        raise ValueError(f"{enum_to_convert.__name__} is not an Enum")
 
     class ConfiguredEnumConverter(BaseConverter):
         def to_python(self, value):

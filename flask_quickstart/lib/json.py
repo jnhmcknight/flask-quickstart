@@ -18,7 +18,7 @@ def extended_default(obj):
         # Naive datetimes are assumed to already be in UTC
         if obj.tzinfo is None:
             obj = obj.replace(tzinfo=timezone.utc)
-        return obj.astimezone(timezone.utc).isoformat('T')
+        return obj.astimezone(timezone.utc).isoformat("T")
     if isinstance(obj, date):
         return obj.isoformat()
     if isinstance(obj, timedelta):
@@ -32,7 +32,7 @@ def extended_default(obj):
     if isinstance(obj, Exception):
         return str(obj)
 
-    raise TypeError(f'Object of type {type(obj).__name__} is not JSON serializable')
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
 class ExtendedEncoder(json.JSONEncoder):

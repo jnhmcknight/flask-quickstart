@@ -1,4 +1,3 @@
-
 import inspect
 import json
 import logging
@@ -62,7 +61,7 @@ class TTLFileCache(Cache):
 
     def __init__(self, storage_folder, *, prefix=None, default_ttl=None):
         if not storage_folder:
-            raise ValueError('storage_folder must be a valid folder')
+            raise ValueError("storage_folder must be a valid folder")
 
         self.storage_folder = storage_folder
         self.prefix = prefix
@@ -92,15 +91,23 @@ class TTLFileCache(Cache):
         return datetime.now(timezone.utc)
 
     def _wrap(self, data, *, ttl=None, expire=False):
-        expiry = self._now if expire else (self._now + timedelta(seconds=ttl or self.default_ttl))
+        expiry = (
+            self._now
+            if expire
+            else (self._now + timedelta(seconds=ttl or self.default_ttl))
+        )
         return {
-            'expires': expiry.isoformat(),
-            'data': data,
+            "expires": expiry.isoformat(),
+            "data": data,
         }
 
     def _unwrap(self, data):
-        expires = datetime.fromisoformat(data['expires'])
-        return (data['data'], expires, (self._now > expires),)
+        expires = datetime.fromisoformat(data["expires"])
+        return (
+            data["data"],
+            expires,
+            (self._now > expires),
+        )
 
     def expire(self, index=None):
         if index is not None:
@@ -139,9 +146,9 @@ class TTLFileCache(Cache):
             return False
 
     def load(self, index, *, encoding=None):
-        encoding = encoding if encoding is not None else 'utf-8'
+        encoding = encoding if encoding is not None else "utf-8"
         try:
-            with open(self._get_full_path(index), 'r', encoding=encoding) as datafile:
+            with open(self._get_full_path(index), "r", encoding=encoding) as datafile:
                 return self._unwrap(json.load(datafile))
 
         except FileNotFoundError:
@@ -153,11 +160,15 @@ class TTLFileCache(Cache):
         return (None, datetime(1970, 1, 1, tzinfo=timezone.utc), True)
 
     def save(self, index, data, *, encoding=None, ttl=None, expire=False):
-        encoding = encoding if encoding is not None else 'utf-8'
+        encoding = encoding if encoding is not None else "utf-8"
         try:
             os.makedirs(self._storage_full_path, exist_ok=True)
-            with open(self._get_full_path(index), 'w', encoding=encoding) as datafile:
-                json.dump(self._wrap(data, ttl=ttl, expire=expire), datafile, cls=ExtendedEncoder)
+            with open(self._get_full_path(index), "w", encoding=encoding) as datafile:
+                json.dump(
+                    self._wrap(data, ttl=ttl, expire=expire),
+                    datafile,
+                    cls=ExtendedEncoder,
+                )
             return True
 
         except (OSError, TypeError) as exc:

@@ -19,7 +19,7 @@ def cache_app(make_app, tmp_path):
 
 @pytest.fixture()
 def ttl_cache(tmp_path):
-    return TTLFileCache(str(tmp_path), prefix='prefixed', default_ttl=60)
+    return TTLFileCache(str(tmp_path), prefix="prefixed", default_ttl=60)
 
 
 def test_cache_key_is_stable():
@@ -35,46 +35,48 @@ def test_cache_key_ignores_self():
         def method(self, a):
             pass
 
-    assert Cache.make_key(Thing.method, Thing(), 1) == Cache.make_key(Thing.method, Thing(), 1)
+    assert Cache.make_key(Thing.method, Thing(), 1) == Cache.make_key(
+        Thing.method, Thing(), 1
+    )
 
 
 def test_in_memory_cache():
     cache = Cache()
 
-    assert cache.load('key') is None
-    assert cache.save('key', {'a': 1})
-    assert cache.load('key') == {'a': 1}
+    assert cache.load("key") is None
+    assert cache.save("key", {"a": 1})
+    assert cache.load("key") == {"a": 1}
 
-    cache.delete('key')
-    assert cache.load('key') is None
+    cache.delete("key")
+    assert cache.load("key") is None
 
-    cache.save('key', 1)
+    cache.save("key", 1)
     cache.clear()
-    assert cache.load('key') is None
+    assert cache.load("key") is None
 
 
 def test_ttl_file_cache_requires_folder():
     with pytest.raises(ValueError):
-        TTLFileCache('')
+        TTLFileCache("")
 
 
 def test_ttl_file_cache_default_ttl(tmp_path):
     assert TTLFileCache(str(tmp_path)).default_ttl == 900
-    assert TTLFileCache(str(tmp_path), default_ttl='30').default_ttl == 30
+    assert TTLFileCache(str(tmp_path), default_ttl="30").default_ttl == 30
 
 
 def test_ttl_file_cache_roundtrip(ttl_cache, tmp_path):
-    assert ttl_cache.save('key', {'when': datetime(2026, 1, 1)})
-    assert (tmp_path / 'prefixed' / 'key').is_file()
+    assert ttl_cache.save("key", {"when": datetime(2026, 1, 1)})
+    assert (tmp_path / "prefixed" / "key").is_file()
 
-    data, expires_at, is_expired = ttl_cache.load('key')
-    assert data == {'when': '2026-01-01T00:00:00+00:00'}
+    data, expires_at, is_expired = ttl_cache.load("key")
+    assert data == {"when": "2026-01-01T00:00:00+00:00"}
     assert expires_at > datetime.now(timezone.utc)
     assert not is_expired
 
 
 def test_ttl_file_cache_missing_entry(ttl_cache):
-    data, expires_at, is_expired = ttl_cache.load('missing')
+    data, expires_at, is_expired = ttl_cache.load("missing")
 
     assert data is None
     assert expires_at < datetime.now(timezone.utc)
@@ -82,34 +84,34 @@ def test_ttl_file_cache_missing_entry(ttl_cache):
 
 
 def test_ttl_file_cache_corrupt_entry(ttl_cache, tmp_path):
-    (tmp_path / 'prefixed').mkdir()
-    (tmp_path / 'prefixed' / 'key').write_text('not json')
+    (tmp_path / "prefixed").mkdir()
+    (tmp_path / "prefixed" / "key").write_text("not json")
 
-    assert ttl_cache.load('key')[0] is None
+    assert ttl_cache.load("key")[0] is None
 
 
 def test_ttl_file_cache_expire(ttl_cache):
-    ttl_cache.save('one', 1)
-    ttl_cache.save('two', 2)
+    ttl_cache.save("one", 1)
+    ttl_cache.save("two", 2)
 
-    ttl_cache.expire('one')
-    assert ttl_cache.load('one') [::2] == (1, True)
-    assert ttl_cache.load('two') [::2] == (2, False)
+    ttl_cache.expire("one")
+    assert ttl_cache.load("one")[::2] == (1, True)
+    assert ttl_cache.load("two")[::2] == (2, False)
 
     ttl_cache.expire()
-    assert ttl_cache.load('two') [::2] == (2, True)
+    assert ttl_cache.load("two")[::2] == (2, True)
 
 
 def test_ttl_file_cache_delete_and_clear(ttl_cache, tmp_path):
-    ttl_cache.save('key', 1)
+    ttl_cache.save("key", 1)
 
-    assert ttl_cache.delete('key')
-    assert ttl_cache.load('key')[0] is None
-    assert ttl_cache.delete('key')
+    assert ttl_cache.delete("key")
+    assert ttl_cache.load("key")[0] is None
+    assert ttl_cache.delete("key")
 
-    ttl_cache.save('key', 1)
+    ttl_cache.save("key", 1)
     assert ttl_cache.clear()
-    assert not (tmp_path / 'prefixed').exists()
+    assert not (tmp_path / "prefixed").exists()
 
 
 def test_memoize(app):
@@ -128,7 +130,7 @@ def test_memoize(app):
     assert calls == [2, 3]
 
 
-@pytest.mark.parametrize('force_refresh', [True, lambda: True])
+@pytest.mark.parametrize("force_refresh", [True, lambda: True])
 def test_memoize_force_refresh(app, force_refresh):
     calls = []
 
@@ -166,25 +168,25 @@ def test_ttl_memoize(cache_app):
     @ttl_memoize()
     def lookup(value):
         calls.append(value)
-        return {'value': value}
+        return {"value": value}
 
-    assert lookup(1) == {'value': 1}
-    assert lookup(1) == {'value': 1}
-    assert lookup(2) == {'value': 2}
+    assert lookup(1) == {"value": 1}
+    assert lookup(1) == {"value": 1}
+    assert lookup(2) == {"value": 2}
     assert calls == [1, 2]
 
 
-@pytest.mark.parametrize('force_refresh', [True, lambda: True])
+@pytest.mark.parametrize("force_refresh", [True, lambda: True])
 def test_ttl_memoize_force_refresh(cache_app, force_refresh):
     calls = []
 
     @ttl_memoize(force_refresh)
     def lookup(value):
         calls.append(value)
-        return {'value': value, 'call': len(calls)}
+        return {"value": value, "call": len(calls)}
 
-    assert lookup(1) == {'value': 1, 'call': 1}
-    assert lookup(1) == {'value': 1, 'call': 2}
+    assert lookup(1) == {"value": 1, "call": 1}
+    assert lookup(1) == {"value": 1, "call": 2}
 
 
 def test_ttl_memoize_refreshes_expired_entries(cache_app):
@@ -193,11 +195,11 @@ def test_ttl_memoize_refreshes_expired_entries(cache_app):
     @ttl_memoize()
     def lookup(value):
         calls.append(value)
-        return {'call': len(calls)}
+        return {"call": len(calls)}
 
-    assert lookup(1) == {'call': 1}
+    assert lookup(1) == {"call": 1}
     lookup.__wrapped__.cache.expire()
-    assert lookup(1) == {'call': 2}
+    assert lookup(1) == {"call": 2}
 
 
 def test_ttl_memoize_serves_stale_data_on_failure(cache_app):
@@ -206,34 +208,39 @@ def test_ttl_memoize_serves_stale_data_on_failure(cache_app):
     @ttl_memoize(lambda: should_fail)
     def lookup():
         if should_fail:
-            raise RuntimeError('upstream is down')
-        return {'fresh': True}
+            raise RuntimeError("upstream is down")
+        return {"fresh": True}
 
-    assert lookup() == {'fresh': True}
+    assert lookup() == {"fresh": True}
 
     should_fail = True
-    assert lookup() == {'fresh': True}
+    assert lookup() == {"fresh": True}
 
 
 def test_ttl_memoize_raises_without_cached_data(cache_app):
     @ttl_memoize()
     def lookup():
-        raise RuntimeError('upstream is down')
+        raise RuntimeError("upstream is down")
 
     with pytest.raises(RuntimeError):
         lookup()
 
 
 def test_ttl_memoize_removes_empty_results(cache_app):
-    results = [{'value': 1}, None]
+    results = [{"value": 1}, None]
 
     @ttl_memoize(lambda: True)
     def lookup():
         return results.pop(0)
 
-    assert lookup() == {'value': 1}
+    assert lookup() == {"value": 1}
     assert lookup() is None
-    assert lookup.__wrapped__.cache.load(lookup.__wrapped__.cache.make_key(lookup.__wrapped__))[0] is None
+    assert (
+        lookup.__wrapped__.cache.load(
+            lookup.__wrapped__.cache.make_key(lookup.__wrapped__)
+        )[0]
+        is None
+    )
 
 
 def test_ttl_memoize_without_storage_folder(app):
@@ -242,7 +249,7 @@ def test_ttl_memoize_without_storage_folder(app):
     @ttl_memoize()
     def lookup():
         calls.append(1)
-        return {'value': 1}
+        return {"value": 1}
 
     with app.app_context():
         lookup()
